@@ -525,8 +525,61 @@ foo.transformInto[Bar]//uses someTypeToAnotherType for foo.a</code></pre></div><
   .enableBeanGetters
   .enableBeanSetters
 
-// now .into.transform and .transformInto use above flags</code></pre></div></div></div></section><section id="_partial_transformers"><h2>Partial Transformers</h2><div class="slide-content"><div class="paragraph"><p>TODO: with</p></div>
-<div class="paragraph"><p>TODO: implicit resolutions</p></div></div></section><section id="_patchers"><h2>Patchers</h2></section></section>
+// now .into.transform and .transformInto use above flags</code></pre></div></div></div></section><section id="_partial_transformers"><h2>Partial Transformers</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Option[Int])
+case class Bar(a: Int)
+
+Foo(None).transformInto[Bar] // cannot handle None!</code></pre></div></div>
+<div class="listingblock fragment"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">val result = Foo(None).transformIntoPartial[Bar]
+result.asEither // Left(...)
+result.asErrorPathMessages
+  // Iterable("a" -&gt; ErrorMessage.EmptyValue)</code></pre></div></div></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">implicit val intToString:
+    Transformer[Int, String] =
+  int =&gt; int.toString
+
+implicit val stringToInt:
+    PartialTransformer[String, Int] =
+  PartialTransformer { str =&gt;
+    partial.Result.fromCatching(str.toInt)
+  }
+
+case class Foo(a: Option[Int], b: String)
+case class Bar(a: String, b: Int)
+
+Foo(None, "test").transformIntoPartial[Bar]</code></pre></div></div>
+<aside class="notes"><div class="paragraph"><p>Partial has all the properties of toral transformers and more.</p></div></aside></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">// from is case class
+from.intoPartial[To]
+  // total operations
+  .withFieldRenamed(_.a, _.b)
+  .withFieldConst(_.c, value)
+  .withFieldComputed(_.d, from =&gt; ...)
+  // partial operations
+  .withFieldComputedPartial(_.e, from =&gt; ...)
+  .transform</code></pre></div></div>
+<div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">// from is sealed hierarchy
+from.intoPartial[To]
+  // total operations
+  .withCoproductInstance[To.Subtype](...)
+  // partial operations
+  .withCoproductInstancePartial[To.Subtype](...)
+  .transform</code></pre></div></div></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">implicit val totalInt2String:
+    Transformer[String, Int] =
+  src =&gt; scala.util.Try(src.toInt).getOrElse(0)
+
+implicit val stringToInt:
+    PartialTransformer[String, Int] =
+  PartialTransformer { str =&gt;
+    partial.Result.fromCatching(str.toInt)
+  }
+
+case class Foo(a: Int)
+case class Bar(a: Int)
+
+Foo(1).transformIntoPartial[Bar] // error: ambiguity!</code></pre></div></div>
+<div class="listingblock fragment"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">implicit val cfg = TransformerConfiguration.default
+ .enableImplicitConflictResolution(PreferTotalTransformer)
+ /* or
+ .enableImplicitConflictResolution(PreferPartialTransformer)
+ */</code></pre></div></div></div></section><section id="_patchers"><h2>Patchers</h2></section></section>
 <section><section id="_generated_code"><h2>Generated code</h2></section><section id="_generating_transformersrc"><h2>Generating <code>transformer(src)</code>?</h2><div class="slide-content"><div class="paragraph"><p>TODO: old code with autogeneration</p></div>
 <div class="paragraph"><p>TODO: inliing</p></div></div></section><section id="_calling_unapply"><h2>Calling <code>unapply</code>?</h2></section><section id="_partial_transformers_combinators"><h2>Partial Transformers combinators?</h2><div class="slide-content"><div class="paragraph"><p>TODO deferring results</p></div>
 <div class="paragraph"><p>TODO N = 1, N = 2, N &gt; 2</p></div></div></section></section>

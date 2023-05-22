@@ -273,9 +273,103 @@ implicit val cfg = TransformerConfiguration.default
 
 === Partial Transformers
 
-TODO: with
+[source, scala]
+--
+case class Foo(a: Option[Int])
+case class Bar(a: Int)
 
-TODO: implicit resolutions
+Foo(None).transformInto[Bar] // cannot handle None!
+--
+
+[%step]
+[source, scala]
+--
+val result = Foo(None).transformIntoPartial[Bar]
+result.asEither // Left(...)
+result.asErrorPathMessages
+  // Iterable("a" -> ErrorMessage.EmptyValue)
+--
+
+=== !
+
+[source, scala]
+--
+implicit val intToString:
+    Transformer[Int, String] =
+  int => int.toString
+
+implicit val stringToInt:
+    PartialTransformer[String, Int] =
+  PartialTransformer { str =>
+    partial.Result.fromCatching(str.toInt)
+  }
+
+case class Foo(a: Option[Int], b: String)
+case class Bar(a: String, b: Int)
+
+Foo(None, "test").transformIntoPartial[Bar]
+--
+
+[NOTE.speaker]
+--
+Partial has all the properties of toral transformers and more.
+--
+
+=== !
+
+[source, scala]
+--
+// from is case class
+from.intoPartial[To]
+  // total operations
+  .withFieldRenamed(_.a, _.b)
+  .withFieldConst(_.c, value)
+  .withFieldComputed(_.d, from => ...)
+  // partial operations
+  .withFieldComputedPartial(_.e, from => ...)
+  .transform
+--
+
+[source, scala]
+--
+// from is sealed hierarchy
+from.intoPartial[To]
+  // total operations
+  .withCoproductInstance[To.Subtype](...)
+  // partial operations
+  .withCoproductInstancePartial[To.Subtype](...)
+  .transform
+--
+
+=== !
+
+[source, scala]
+--
+implicit val totalInt2String:
+    Transformer[String, Int] =
+  src => scala.util.Try(src.toInt).getOrElse(0)
+
+implicit val stringToInt:
+    PartialTransformer[String, Int] =
+  PartialTransformer { str =>
+    partial.Result.fromCatching(str.toInt)
+  }
+
+case class Foo(a: Int)
+case class Bar(a: Int)
+
+Foo(1).transformIntoPartial[Bar] // error: ambiguity!
+--
+
+[%step]
+[source, scala]
+--
+implicit val cfg = TransformerConfiguration.default
+ .enableImplicitConflictResolution(PreferTotalTransformer)
+ /* or
+ .enableImplicitConflictResolution(PreferPartialTransformer)
+ */
+--
 
 === Patchers
 
