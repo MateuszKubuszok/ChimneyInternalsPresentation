@@ -211,6 +211,11 @@ object Bar {
   }.transform // Bar.B(2)
 --
 
+[NOTE.speaker]
+--
+There is an interesting duality between products and coproducts: products require that all output fields have sources, and coproducts require that all input types have targets.
+--
+
 === ``AnyVal`` conversions
 
 [source, scala]
@@ -225,7 +230,46 @@ Foo(1).transformInto[Int] // 1
 
 === Implicit ``Transformer``
 
+[source, scala]
+--
+class SomeType(val x: Int)
+class AnotherType(val y: Int)
+
+case class Foo(a: SomeType, b: Int)
+case class Bar(a: AnotherType, b: Int)
+
+foo.transformInto[Bar] // error: how to convert foo.a?
+--
+
+[%step]
+[source, scala]
+--
+import io.scalaland.chimney.Transformer
+
+implicit val someTypeToAnotherType:
+   Transformer[SomeType, AnotherType] =
+  st => new AnotherType(y = st.x) // single abstract method
+
+foo.transformInto[Bar]//uses someTypeToAnotherType for foo.a
+--
+
+[NOTE.speaker]
+--
+This shows the true power of Chimney as transformetions can be generated recursively and then we only have to manually plug-in the types which cannot be figured out.
+--
+
 === Implicit ``TransformerConfiguration``
+
+[source, scala]
+--
+implicit val cfg = TransformerConfiguration.default
+  .enableDefaultValues
+  .enableOptionDefaultsToNone
+  .enableBeanGetters
+  .enableBeanSetters
+
+// now .into.transform and .transformInto use above flags
+--
 
 === Partial Transformers
 
@@ -285,6 +329,8 @@ TODO quotes.relect
 === Common API?
 
 TODO expr and type
+
+=== Technical debt
 
 == Questions?
 
