@@ -478,7 +478,7 @@ new Bar().pipe(_.setA(1)).pipe(_.setB(2.0))
 
 case class Bar(a: Int)
 
-Foo(1, 2.0).into[Bar].enableMethodAccessors.transform</code></pre></div></div>
+Foo(1).into[Bar].enableMethodAccessors.transform</code></pre></div></div>
 <aside class="notes"><div class="paragraph"><p>By default only <code>case class</code> fields are takein into consideration.</p></div></aside></div></section><section id="_sealed_hierarches_conversions"><h2><code>sealed</code> hierarches conversions</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">sealed trait Foo
 object Foo {
   case object A extends Foo
@@ -585,13 +585,31 @@ Foo(1).transformIntoPartial[Bar] // error: ambiguity!</code></pre></div></div>
  .enableImplicitConflictResolution(PreferTotalTransformer)
  /* or
  .enableImplicitConflictResolution(PreferPartialTransformer)
- */</code></pre></div></div></div></section><section id="_patchers"><h2>Patchers</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Int, b: String, c: Double)
+ */</code></pre></div></div>
+<div class="paragraph"><p>TODO: fail fast</p></div>
+<div class="paragraph"><p>TODO error reporting</p></div></div></section><section id="_patchers"><h2>Patchers</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Int, b: String, c: Double)
 case class Patch(c: Double)
 
 Foo(1, "2", 3.0).patchUsing(Patch(4.0)) // Foo(1, "2", 4.0)</code></pre></div></div>
 <aside class="notes"><div class="paragraph"><p>Patchers are currently shallow, they don&#8217;t update things in-depth, and only support <code>case class</code>es.</p></div></aside></div></section></section>
-<section><section id="_generated_code"><h2>Generated code</h2></section><section id="_generating_transformersrc"><h2>Generating <code>transformer(src)</code>?</h2><div class="slide-content"><div class="paragraph"><p>TODO: old code with autogeneration</p></div>
-<div class="paragraph"><p>TODO: inliing</p></div></div></section><section id="_calling_unapply"><h2>Calling <code>unapply</code>?</h2></section><section id="_partial_transformers_combinators"><h2>Partial Transformers combinators?</h2><div class="slide-content"><div class="paragraph"><p>TODO deferring results</p></div>
+<section><section id="_generated_code"><h2>Generated code</h2></section><section id="_are_we_generating_new_transformers"><h2>Are we generating <code>new Transformer</code>s?</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Int, b: String)
+case class Bar(a: Int, b: String)
+
+Foo(1, "b").transformInto[Bar]</code></pre></div></div>
+<div class="paragraph"><p>Do we generate:</p></div>
+<div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">new Transformer {
+  def transform(foo: Foo): Bar = Bar(
+    Transformer.identity[Int].transform(foo.a),
+    Transformer.identity[String].transform(foo.b)
+  )
+}.transform(Foo(1, "b"))</code></pre></div></div>
+<div class="paragraph"><p>?</p></div>
+<aside class="notes"><div class="paragraph"><p>Answer: in the old times when it was a Shapeless project, we did, but for many years we don&#8217;t.</p></div></aside></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">val compilerGeneratedName = Foo(1, "b")
+Bar(
+  compilerGeneratedName.a,
+  compilerGeneratedName.b
+)</code></pre></div></div>
+<aside class="notes"><div class="paragraph"><p>Actually, what Chimney generates is the expression with the target type. Everything is inlined from the start.</p></div></aside></div></section><section><div class="slide-content"><div class="paragraph"><p>TODO: nested example</p></div></div></section><section><div class="slide-content"><div class="paragraph"><p>TODO when there is implicit</p></div></div></section><section><div class="slide-content"><div class="paragraph"><p>define</p></div></div></section><section id="_calling_unapply"><h2>Calling <code>unapply</code>?</h2></section><section id="_partial_transformers_combinators"><h2>Partial Transformers combinators?</h2><div class="slide-content"><div class="paragraph"><p>TODO deferring results</p></div>
 <div class="paragraph"><p>TODO N = 1, N = 2, N &gt; 2</p></div></div></section></section>
 <section id="_migrations_goals_chimney_0_8_0"><h2>Migration&#8217;s goals (Chimney 0.8.0)</h2><div class="slide-content"><div class="ulist"><ul><li class="fragment"><p>source compatibility</p></li><li class="fragment"><p>(excluding deprecated features which are removed)</p></li><li class="fragment"><p>sharing as much code generation logic between Scala 2 and Scala 3 as possible</p></li></ul></div></div></section>
 <section><section id="_research_for_new_chimney_internals"><h2>Research for new Chimney internals</h2></section><section id="_scala_2_macros"><h2>Scala 2 macros</h2><div class="slide-content"><div class="paragraph"><p>TODO: codegen glued to an object</p></div>
@@ -601,7 +619,7 @@ Foo(1, "2", 3.0).patchUsing(Patch(4.0)) // Foo(1, "2", 4.0)</code></pre></div></
 <div class="paragraph"><p>TODO Trees</p></div>
 <div class="paragraph"><p>TODO type checking</p></div></div></section><section id="_scala_3_macros"><h2>Scala 3 macros</h2><div class="slide-content"><div class="paragraph"><p>TODO quote and unquote</p></div>
 <div class="paragraph"><p>TODO: no prefix</p></div>
-<div class="paragraph"><p>TODO quotes.relect</p></div></div></section><section id="_common_api"><h2>Common API?</h2><div class="slide-content"><div class="paragraph"><p>TODO expr and type</p></div></div></section><section id="_technical_debt"><h2>Technical debt</h2></section></section>
+<div class="paragraph"><p>TODO quotes.relect</p></div></div></section><section id="_common_api"><h2>Common API?</h2><div class="slide-content"><div class="paragraph"><p>TODO expr and type</p></div></div></section><section id="_technical_debt"><h2>Technical debt</h2><div class="slide-content"><div class="paragraph"><p>TODO the actual reason Chimney migration takes this long</p></div></div></section></section>
 <section id="_questions"><h2>Questions?</h2></section>
 <section id="_thank_you"><h2>Thank You!</h2></section></div></div><script src="./reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;

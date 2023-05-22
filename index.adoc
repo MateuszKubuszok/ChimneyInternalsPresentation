@@ -179,7 +179,7 @@ class Foo {
 
 case class Bar(a: Int)
 
-Foo(1, 2.0).into[Bar].enableMethodAccessors.transform
+Foo(1).into[Bar].enableMethodAccessors.transform
 --
 
 [NOTE.speaker]
@@ -387,6 +387,10 @@ implicit val cfg = TransformerConfiguration.default
  */
 --
 
+TODO: fail fast
+
+TODO error reporting
+
 === Patchers
 
 [source, scala]
@@ -404,11 +408,62 @@ Patchers are currently shallow, they don't update things in-depth, and only supp
 
 == Generated code
 
-=== Generating ``transformer(src)``?
+=== Are we generating ``new Transformer``s?
 
-TODO: old code with autogeneration
+[source, scala]
+--
+case class Foo(a: Int, b: String)
+case class Bar(a: Int, b: String)
 
-TODO: inliing
+Foo(1, "b").transformInto[Bar]
+--
+
+Do we generate:
+
+[source, scala]
+--
+new Transformer {
+  def transform(foo: Foo): Bar = Bar(
+    Transformer.identity[Int].transform(foo.a),
+    Transformer.identity[String].transform(foo.b)
+  )
+}.transform(Foo(1, "b"))
+--
+
+?
+
+[NOTE.speaker]
+--
+Answer: in the old times when it was a Shapeless project, we did, but for many years we don't.
+--
+
+=== !
+
+[source, scala]
+--
+val compilerGeneratedName = Foo(1, "b")
+Bar(
+  compilerGeneratedName.a,
+  compilerGeneratedName.b
+)
+--
+
+[NOTE.speaker]
+--
+Actually, what Chimney generates is the expression with the target type. Everything is inlined from the start.
+--
+
+=== !
+
+TODO: nested example
+
+=== !
+
+TODO when there is implicit
+
+=== !
+
+define
 
 === Calling ``unapply``?
 
@@ -454,6 +509,8 @@ TODO quotes.relect
 TODO expr and type
 
 === Technical debt
+
+TODO the actual reason Chimney migration takes this long
 
 == Questions?
 
