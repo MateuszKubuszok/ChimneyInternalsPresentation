@@ -472,8 +472,14 @@ Foo(1, 2.0).into[Bar].enableBeanSetters.transform
 import scala.util.chaining.*
 new Bar().pipe(_.setA(1)).pipe(_.setB(2.0))
   .into[Foo].enableBeanGetters.transform</code></pre></div></div>
-<aside class="notes"><div class="paragraph"><p>Instead of a case class we might use a Java Bean as well.</p></div></aside>
-<div class="paragraph"><p>TODO method accessors</p></div></div></section><section id="_sealed_hierarches_conversions"><h2><code>sealed</code> hierarches conversions</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">sealed trait Foo
+<aside class="notes"><div class="paragraph"><p>Instead of a case class we might use a Java Bean as well.</p></div></aside></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">class Foo {
+  def a: Int = 1
+}
+
+case class Bar(a: Int)
+
+Foo(1, 2.0).into[Bar].enableMethodAccessors.transform</code></pre></div></div>
+<aside class="notes"><div class="paragraph"><p>By default only <code>case class</code> fields are takein into consideration.</p></div></aside></div></section><section id="_sealed_hierarches_conversions"><h2><code>sealed</code> hierarches conversions</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">sealed trait Foo
 object Foo {
   case object A extends Foo
   case class B(b: Int) extends Foo
@@ -563,7 +569,7 @@ from.intoPartial[To]
   .withCoproductInstancePartial[To.Subtype](...)
   .transform</code></pre></div></div></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">implicit val totalInt2String:
     Transformer[String, Int] =
-  src =&gt; scala.util.Try(src.toInt).getOrElse(0)
+  str =&gt; scala.util.Try(str.toInt).getOrElse(0)
 
 implicit val stringToInt:
     PartialTransformer[String, Int] =
@@ -571,7 +577,7 @@ implicit val stringToInt:
     partial.Result.fromCatching(str.toInt)
   }
 
-case class Foo(a: Int)
+case class Foo(a: String)
 case class Bar(a: Int)
 
 Foo(1).transformIntoPartial[Bar] // error: ambiguity!</code></pre></div></div>
@@ -579,7 +585,11 @@ Foo(1).transformIntoPartial[Bar] // error: ambiguity!</code></pre></div></div>
  .enableImplicitConflictResolution(PreferTotalTransformer)
  /* or
  .enableImplicitConflictResolution(PreferPartialTransformer)
- */</code></pre></div></div></div></section><section id="_patchers"><h2>Patchers</h2></section></section>
+ */</code></pre></div></div></div></section><section id="_patchers"><h2>Patchers</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Int, b: String, c: Double)
+case class Patch(c: Double)
+
+Foo(1, "2", 3.0).patchUsing(Patch(4.0)) // Foo(1, "2", 4.0)</code></pre></div></div>
+<aside class="notes"><div class="paragraph"><p>Patchers are currently shallow, they don&#8217;t update things in-depth, and only support <code>case class</code>es.</p></div></aside></div></section></section>
 <section><section id="_generated_code"><h2>Generated code</h2></section><section id="_generating_transformersrc"><h2>Generating <code>transformer(src)</code>?</h2><div class="slide-content"><div class="paragraph"><p>TODO: old code with autogeneration</p></div>
 <div class="paragraph"><p>TODO: inliing</p></div></div></section><section id="_calling_unapply"><h2>Calling <code>unapply</code>?</h2></section><section id="_partial_transformers_combinators"><h2>Partial Transformers combinators?</h2><div class="slide-content"><div class="paragraph"><p>TODO deferring results</p></div>
 <div class="paragraph"><p>TODO N = 1, N = 2, N &gt; 2</p></div></div></section></section>

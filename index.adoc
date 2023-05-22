@@ -169,7 +169,23 @@ new Bar().pipe(_.setA(1)).pipe(_.setB(2.0))
 Instead of a case class we might use a Java Bean as well.
 --
 
-TODO method accessors
+=== !
+
+[source, scala]
+--
+class Foo {
+  def a: Int = 1
+}
+
+case class Bar(a: Int)
+
+Foo(1, 2.0).into[Bar].enableMethodAccessors.transform
+--
+
+[NOTE.speaker]
+--
+By default only ``case class`` fields are takein into consideration.
+--
 
 === ``sealed`` hierarches conversions
 
@@ -347,7 +363,7 @@ from.intoPartial[To]
 --
 implicit val totalInt2String:
     Transformer[String, Int] =
-  src => scala.util.Try(src.toInt).getOrElse(0)
+  str => scala.util.Try(str.toInt).getOrElse(0)
 
 implicit val stringToInt:
     PartialTransformer[String, Int] =
@@ -355,7 +371,7 @@ implicit val stringToInt:
     partial.Result.fromCatching(str.toInt)
   }
 
-case class Foo(a: Int)
+case class Foo(a: String)
 case class Bar(a: Int)
 
 Foo(1).transformIntoPartial[Bar] // error: ambiguity!
@@ -372,6 +388,19 @@ implicit val cfg = TransformerConfiguration.default
 --
 
 === Patchers
+
+[source, scala]
+--
+case class Foo(a: Int, b: String, c: Double)
+case class Patch(c: Double)
+
+Foo(1, "2", 3.0).patchUsing(Patch(4.0)) // Foo(1, "2", 4.0)
+--
+
+[NOTE.speaker]
+--
+Patchers are currently shallow, they don't update things in-depth, and only support ``case class``es.
+--
 
 == Generated code
 
