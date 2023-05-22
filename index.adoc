@@ -1,7 +1,7 @@
 // 45 minutes
 :revealjs_totalTime: 2700
 
-= Unveiling the Magic
+= Unveiling the{nbsp}Magic
 
 **Chimney's Internals, Macros & Scala 3 Transition**
 
@@ -54,6 +54,11 @@ case class Bar(a: Int, b: Double) // same fields
 Foo(1, 2.0).transformInto[Bar] // Bar(1, 2.0)
 --
 
+[NOTE.speaker]
+--
+If every field in ``Bar`` has a corresponding field in ``Foo`` and fields don't have to be converted, transformation doesn't require any configuration.
+--
+
 === !
 
 [source, scala]
@@ -64,6 +69,11 @@ case class Bar(a: Int, c: Double) // c instead of b
 Foo(1, 2.0).into[Bar]
   .withFieldRenamed(_.b, _.c)
   .transform // Bar(1, 2.0)
+--
+
+[NOTE.speaker]
+--
+If we don't want to provide value because field can take value from another field we can use rename.
 --
 
 === !
@@ -88,6 +98,11 @@ Foo(1, 2.0).into[Bar]
   .transform // Bar(1, 2.0, "Foo(1, 2.0)")
 --
 
+[NOTE.speaker]
+--
+If we have to fill an new field, we can use provide constant or compute the value.
+--
+
 === !
 
 [source, scala]
@@ -110,6 +125,11 @@ Foo(1, 2.0).into[Bar]
   .transform // Bar(1, 2.0, None)
 --
 
+[NOTE.speaker]
+--
+Or we can use some defaults if no other way is available but some default is accessible.
+--
+
 === Tuples conversions
 
 [source, scala]
@@ -118,6 +138,11 @@ case class Foo(a: Int, b: Double)
 
 Foo(1, 2.0).transformInto[(Int, Double)] // (1, 2.0, None)
 (1, 2.0).transformInto[Foo] // Foo(1, 2.0, None)
+--
+
+[NOTE.speaker]
+--
+If either side of a transformation is a tuple we match fields by their positions instead of names.
 --
 
 === Java Beans conversions
@@ -139,9 +164,64 @@ new Bar().pipe(_.setA(1)).pipe(_.setB(2.0))
   .into[Foo].enableBeanGetters.transform
 --
 
+[NOTE.speaker]
+--
+Instead of a case class we might use a Java Bean as well.
+--
+
+TODO method accessors
+
 === ``sealed`` hierarches conversions
 
+[source, scala]
+--
+sealed trait Foo
+object Foo {
+  case object A extends Foo
+  case class B(b: Int) extends Foo
+}
+
+sealed trait Bar // same subtypes
+object Bar {
+  case object A extends Foo
+  case class B(b: Int) extends Bar
+}
+
+(Foo.A : Foo).transformInto[Bar] // Bar.A
+(Foo.B(1) : Foo).transformInto[Bar] // Bar.B(1)
+--
+
+=== !
+
+[source, scala]
+--
+sealed trait Foo
+object Foo {
+  case object A extends Foo
+  case class B(b: Int) extends Foo
+  case class C(c: Double) extends Foo
+}
+sealed trait Bar // missing Bar.C
+object Bar {
+  case object A extends Foo
+  case class B(b: Int) extends Bar
+}
+(Foo.C(2.0) : Foo).into[Bar].withCoproductInstance[Foo.C] {
+    case Foo.C(c) => Bar.B(c.toInt)
+  }.transform // Bar.B(2)
+--
+
 === ``AnyVal`` conversions
+
+[source, scala]
+--
+case class Foo(val value: Int) extends AnyVal
+case class Bar(val value: Int) extends AnyVal
+
+Foo(1).transformInto[Bar] // Bar(1)
+Foo(1).transformInto[Int] // 1
+1.transformInto[Bar] // Bar(1)
+--
 
 === Implicit ``Transformer``
 
