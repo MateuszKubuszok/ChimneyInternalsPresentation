@@ -1,32 +1,211 @@
+// 45 minutes
+:revealjs_totalTime: 2700
+
 = Unveiling the Magic
 
 **Chimney's Internals, Macros & Scala 3 Transition**
 
 Mateusz Kubuszok
 
-== Slide One
+== About me
 
 [%step]
-* Foo
-* Bar
-* World
-
-== Slide Two
-
-Hello World - Good Bye Cruel World
+* breaking things in Scala for 8+ years
+* breaking things for money for 10 years
+* breaking things for fun for 18(?) years
+* a little bit of open source - including cu-authoring Chimney
+* blog at https://kubuszok.com[Kubuszok.com]
+* niche https://leanpub.com/jvm-scala-book[Things you need to know about JVM (that matter in Scala)] ebook
 
 [NOTE.speaker]
 --
-Actually things aren't that bad
+Every presentation should start with some excuse, why you even are here
 --
 
-== Source code
+== Agenda
+
+[%step]
+* what are Chimney's features
+* what kind of code are we generating
+* goals for the migration to Scala 2+3
+* research and the current state
+
+[NOTE.speaker]
+--
+I'll skip explaining why Chimney exists because previous presentation already dscussed the use cases.
+
+I'll list features because it will help understand what we are generating and what we are supporting.
+--
+
+== Chimney's features
+
+=== ``case class`` conversions
 
 [source, scala]
 --
-val test = task
-  .map(identity)
-  .flatMap(a => Something(b))
-  .runSyncUnsafe
-  // result
+import io.scalaland.chimney.dsl.* // assume this from now on
 --
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+case class Bar(a: Int, b: Double) // same fields
+
+Foo(1, 2.0).transformInto[Bar] // Bar(1, 2.0)
+--
+
+=== !
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+case class Bar(a: Int, c: Double) // c instead of b
+
+Foo(1, 2.0).into[Bar]
+  .withFieldRenamed(_.b, _.c)
+  .transform // Bar(1, 2.0)
+--
+
+=== !
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+case class Bar(a: Int, b: Double, c: String) // extra field
+
+Foo(1, 2.0).into[Bar]
+  .withFieldConst(_.c, "test")
+  .transform // Bar(1, 2.0, "test")
+--
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+case class Bar(a: Int, b: Double, c: String) // extra field
+
+Foo(1, 2.0).into[Bar]
+  .withFieldComputed(_.c, foo => foo.toString)
+  .transform // Bar(1, 2.0, "Foo(1, 2.0)")
+--
+
+=== !
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+case class Bar(a: Int, b: Double, c: String = "c") // ditto
+
+Foo(1, 2.0).into[Bar]
+  .enableDefaultValues
+  .transform // Bar(1, 2.0, "c")
+--
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+case class Bar(a: Int, b: Double, c: Option[String])//ditto
+
+Foo(1, 2.0).into[Bar]
+  .enableOptionDefaultsToNone
+  .transform // Bar(1, 2.0, None)
+--
+
+=== Tuples conversions
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+
+Foo(1, 2.0).transformInto[(Int, Double)] // (1, 2.0, None)
+(1, 2.0).transformInto[Foo] // Foo(1, 2.0, None)
+--
+
+=== Java Beans conversions
+
+[source, scala]
+--
+case class Foo(a: Int, b: Double)
+class Bar private (
+  @BeanProperty var a: Int,
+  @BeanProperty var b: Double
+) {
+  def this() = this(0, 0.0)
+}
+
+Foo(1, 2.0).into[Bar].enableBeanSetters.transform
+
+import scala.util.chaining.*
+new Bar().pipe(_.setA(1)).pipe(_.setB(2.0))
+  .into[Foo].enableBeanGetters.transform
+--
+
+=== ``sealed`` hierarches conversions
+
+=== ``AnyVal`` conversions
+
+=== Implicit ``Transformer``
+
+=== Implicit ``TransformerConfiguration``
+
+=== Partial Transformers
+
+TODO: with
+
+TODO: implicit resolutions
+
+=== Patchers
+
+== Generated code
+
+=== Generating ``transformer(src)``?
+
+TODO: old code with autogeneration
+
+TODO: inliing
+
+=== Calling ``unapply``?
+
+=== Partial Transformers combinators?
+
+TODO deferring results
+
+TODO N = 1, N = 2, N > 2
+
+== Migration's goals (Chimney 0.8.0)
+
+[%step]
+* source compatibility
+* (excluding deprecated features which are removed)
+* sharing as much code generation logic between Scala 2 and Scala 3 as possible
+
+== Research for new Chimney internals
+
+=== Scala 2 macros
+
+TODO: codegen glued to an object
+
+TODO quasiquotes
+
+TODO prefix
+
+TODO freshTerms
+
+TODO Trees
+
+TODO type checking
+
+=== Scala 3 macros
+
+TODO quote and unquote
+
+TODO: no prefix
+
+TODO quotes.relect
+
+=== Common API?
+
+TODO expr and type
+
+== Questions?
+
+== Thank You!
