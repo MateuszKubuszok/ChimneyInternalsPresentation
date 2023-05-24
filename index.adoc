@@ -389,9 +389,37 @@ implicit val cfg = TransformerConfiguration.default
 
 === !
 
-TODO: fail fast
+[source, scala]
+--
+implicit val stringToInt:
+    PartialTransformer[String, Int] =
+  PartialTransformer.fromFunction(_.toInt)
 
-TODO error reporting
+case class Foo(a: String, foo: Foo2)
+case class Foo2(b: String)
+
+case class Bar(a: Int, foo: Bar2)
+case class Bar2(b: Int)
+--
+
+[%step]
+[source, scala]
+--
+Foo("a", Foo2("b"))
+  .transformIntoPartial[Bar]
+  .asErrorPathMessageStrings
+// List("a" -> "For input string: \"a\"",
+//      "foo.b" -> "For input string: \"b"\")
+--
+
+[%step]
+[source, scala]
+--
+Foo("a", Foo2("b"))
+  .transformIntoPartial[Bar](failFast = true)
+  .asErrorPathMessageStrings
+// List("a" -> "For input string: \"a\"")
+--
 
 === Patchers
 

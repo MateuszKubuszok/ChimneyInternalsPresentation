@@ -585,8 +585,24 @@ Foo(1).transformIntoPartial[Bar] // error: ambiguity!</code></pre></div></div>
  .enableImplicitConflictResolution(PreferTotalTransformer)
  /* or
  .enableImplicitConflictResolution(PreferPartialTransformer)
- */</code></pre></div></div></div></section><section><div class="slide-content"><div class="paragraph"><p>TODO: fail fast</p></div>
-<div class="paragraph"><p>TODO error reporting</p></div></div></section><section id="_patchers"><h2>Patchers</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Int, b: String, c: Double)
+ */</code></pre></div></div></div></section><section><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">implicit val stringToInt:
+    PartialTransformer[String, Int] =
+  PartialTransformer.fromFunction(_.toInt)
+
+case class Foo(a: String, foo: Foo2)
+case class Foo2(b: String)
+
+case class Bar(a: Int, foo: Bar2)
+case class Bar2(b: Int)</code></pre></div></div>
+<div class="listingblock fragment"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">Foo("a", Foo2("b"))
+  .transformIntoPartial[Bar]
+  .asErrorPathMessageStrings
+// List("a" -&gt; "For input string: \"a\"",
+//      "foo.b" -&gt; "For input string: \"b"\")</code></pre></div></div>
+<div class="listingblock fragment"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">Foo("a", Foo2("b"))
+  .transformIntoPartial[Bar](failFast = true)
+  .asErrorPathMessageStrings
+// List("a" -&gt; "For input string: \"a\"")</code></pre></div></div></div></section><section id="_patchers"><h2>Patchers</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">case class Foo(a: Int, b: String, c: Double)
 case class Patch(c: Double)
 
 Foo(1, "2", 3.0).patchUsing(Patch(4.0)) // Foo(1, "2", 4.0)</code></pre></div></div>
