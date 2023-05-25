@@ -638,9 +638,132 @@ We cannot do inline derivation bacause it cannot handle recursion, we also canno
 
 === Partial Transformers combinators?
 
-TODO deferring results
+=== !
 
-TODO N = 1, N = 2, N > 2
+[source, scala]
+--
+case class Foo5_0(a: Int, b: Int, c: Int)
+case class Bar5(a: Int, b: Int, c: Int)
+
+implicit val stringToInt: PartialTransformer[String, Int] =
+  PartialTransformer.fromFunction[String, Int](_.toInt)
+
+Foo5_0(1, 2, 3).transformIntoPartial[Bar5]
+--
+
+[%step]
+[source, scala]
+--
+val foo5_0 = Foo5_0(1, 2, 3)
+partial.Result.Value(new Bar5(foo5_0.a, foo5_0.b, foo5_0.c))
+--
+
+=== !
+
+[source, scala]
+--
+case class Foo5_1(a: String, b: Int, c: Int)
+case class Bar5(a: Int, b: Int, c: Int)
+
+implicit val stringToInt: PartialTransformer[String, Int] =
+  PartialTransformer.fromFunction[String, Int](_.toInt)
+
+Foo5_1("1", 2, 3).transformIntoPartial[Bar5]
+--
+
+[%step]
+[source, scala]
+--
+val foo5_1 = Foo5_1("1", 2, 3)
+stringToInt.transform(foo5_1.a)
+  .prependErrorPath(partial.PathElement.Accessor("a"))
+  .map((a: Int) => new Bar5(a, foo5_1.b, foo5_1.c)
+--
+
+=== !
+
+[source, scala]
+--
+case class Foo5_2(a: String, b: String, c: Int)
+case class Bar5(a: Int, b: Int, c: Int)
+
+implicit val stringToInt: PartialTransformer[String, Int] =
+  PartialTransformer.fromFunction[String, Int](_.toInt)
+
+Foo5_2("1", "2", 3).transformIntoPartial[Bar5]
+--
+
+[%step]
+[source, scala]
+--
+val foo5_2 = Foo5_2("1", "2", 3)
+partial.Result.map2[Int, Int, Bar5](
+  stringToInt.transform(foo5_2.a)
+    .prependErrorPath(partial.PathElement.Accessor("a")),
+  stringToInt.transform(foo5_2.b)
+    .prependErrorPath(partial.PathElement.Accessor("b")),
+  {
+    case (a: Int), (b : Int) => new Bar5(a, b, foo5_2.c)
+  },
+  failfast
+)
+--
+
+=== !
+
+[source, scala]
+--
+case class Foo5_3(a: String, b: String, c: String)
+case class Bar5(a: Int, b: Int, c: Int)
+
+implicit val stringToInt: PartialTransformer[String, Int] =
+  PartialTransformer.fromFunction[String, Int](_.toInt)
+
+Foo5_3("1", "2", "3").transformIntoPartial[Bar5]
+--
+
+[%step]
+[source, scala]
+--
+val foo5_3 = Foo5_3("1", "2", "3")
+final def rd_a: partial.Result[Int] =
+  stringToInt.transform(foo5_3.a)
+    .prependErrorPath(partial.PathElement.Accessor("a"))
+final def rd_b: partial.Result[Int] =
+  stringToInt.transform(foo5_3.b)
+     .prependErrorPath(partial.PathElement.Accessor("b"))
+final def rd_c: partial.Result[Int] =
+  stringToInt.transform(foo5_3.c)
+    .prependErrorPath(partial.PathElement.Accessor("c"))
+if (failfast)
+  for {
+    rvff_a <- rd_a
+    rvff_b <- rd_b
+    rvff_b <- rd_c
+  } yield new Bar5(rvff_a, rvff_b, rvff_c)
+else {
+  var allerrors: partial.Result.Errors = null;
+  final val rv_a = rd_a
+  allerrors = partial.Result.Errors
+    .__mergeResultNullable(allerrors, rv_a)
+  final val rv_b = rd_b
+  allerrors = partial.Result.Errors
+    .__mergeResultNullable(allerrors, rv_b)
+  final val rv_c = rd_c
+  allerrors = partial.Result.Errors
+    .__mergeResultNullable(allerrors, rv_c)
+  if (allerrors == null)
+    partial.Result.Value(
+      new Bar5(
+        rv_a.asInstanceOf[partial.Result.Value[Int]].value,
+        rv_b.asInstanceOf[partial.Result.Value[Int]].value,
+        rv_c.asInstanceOf[partial.Result.Value[Int]].value
+      )
+    )
+  else
+    allerrors
+}
+--
 
 === !
 
