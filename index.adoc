@@ -767,7 +767,7 @@ else {
 
 === !
 
-TODO benchmarks
+image::benchmarks.png[]
 
 == Migration's goals (Chimney 0.8.0)
 
